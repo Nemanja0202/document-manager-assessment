@@ -63,6 +63,9 @@ target/
 .python-version
 
 
+# IDE's
+.idea
+
 
 # Environments
 .venv

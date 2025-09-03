@@ -34,3 +34,4 @@ class User(AbstractUser):
 class FileVersion(models.Model):
     file_name = models.fields.CharField(max_length=512)
     version_number = models.fields.IntegerField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=None, null=True)

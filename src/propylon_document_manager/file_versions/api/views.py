@@ -13,7 +13,7 @@ class FileVersionViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):
     permission_classes = []
     serializer_class = FileVersionSerializer
     queryset = FileVersion.objects.all()
-    lookup_field = "id"
+    lookup_field = "file_name"
 
     def create(self, validated_data):
         file_name = validated_data.data.get("file_name")
@@ -26,3 +26,14 @@ class FileVersionViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):
 
         serilizer = self.serializer_class(file_version)
         return Response(serilizer.data, status=status.HTTP_201_CREATED)
+
+    def retrieve(self, request, *ags, **kwargs):
+        file_name = self.kwargs.get("file_name")
+
+        if version_number := request.query_params.get("version_number"):
+            file_version = FileVersion.objects.filter(file_name=file_name, version_number=version_number).first()
+        else:
+            file_version = FileVersion.objects.filter(file_name=file_name).order_by("-version_number").first()
+
+        serilizer = self.serializer_class(file_version)
+        return Response(serilizer.data)

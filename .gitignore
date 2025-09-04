@@ -67,6 +67,9 @@ target/
 .idea
 
 
+src/propylon_document_manager/media/
+
+
 # Environments
 .venv
 venv/

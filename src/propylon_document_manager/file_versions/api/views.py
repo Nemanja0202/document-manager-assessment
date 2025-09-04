@@ -3,6 +3,7 @@ import shutil
 from hashlib import sha256
 from pathlib import Path
 
+from django.http import FileResponse, Http404
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.exceptions import ValidationError
@@ -17,6 +18,18 @@ from .serializers import FileVersionSerializer
 
 
 PATH_TO_MEDIA = ['src', 'propylon_document_manager', 'media']
+
+
+def get_directories(file_url, user_id, version_number):
+    new_file_directories = file_url.split("/")
+    new_file_name = new_file_directories.pop()
+
+    # Saving files to /media/{user_id}/{desired_path}/{version_number so we have all versions of a file and also
+    # preventing users overwriting other users' files if they provide the same path and file name
+    media_path = os.path.join(os.getcwd(), *PATH_TO_MEDIA)
+    new_file_path = os.path.join(media_path, str(user_id), *new_file_directories, str(version_number))
+
+    return media_path, new_file_path, new_file_name
 
 
 class FileVersionUploadView(APIView):
@@ -35,16 +48,6 @@ class FileVersionUploadView(APIView):
             file_url = file_url[1:]
 
         return file_url
-
-    @staticmethod
-    def get_directories(file_url, user_id, version_number):
-        new_file_directories = file_url.split("/")
-        new_file_name = new_file_directories.pop()
-
-        media_path = os.path.join(os.getcwd(), *PATH_TO_MEDIA)
-        new_file_path = os.path.join(media_path, str(user_id), *new_file_directories, str(version_number))
-
-        return media_path, new_file_path, new_file_name
 
     def post(self, request):
         user_id = request.user.id
@@ -69,7 +72,7 @@ class FileVersionUploadView(APIView):
 
         version_number = latest_version.version_number + 1 if latest_version else 0
 
-        media_path, new_file_path, new_file_name = self.get_directories(file_url, user_id, version_number)
+        media_path, new_file_path, new_file_name = get_directories(file_url, user_id, version_number)
         Path(new_file_path).mkdir(parents=True, exist_ok=True)
 
         file_version = FileVersion.objects.create(
@@ -97,9 +100,43 @@ class FileVersionUploadView(APIView):
         )
 
 
+class FileVersionRetrieveView(APIView):
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, file_url):
+        user_id = request.user.id
+        version_number = request.query_params.get("version_number")
+
+        if version_number:
+            file_version = FileVersion.objects.filter(
+                file_url=file_url,
+                user_id=user_id,
+                version_number=version_number
+            ).first()
+        else:
+            file_version = FileVersion.objects.filter(
+                file_url=file_url,
+                user_id=user_id
+            ).order_by("-version_number").first()
+
+        if not file_version:
+            raise Http404("File not found")
+
+        version_number = file_version.version_number
+
+        _, new_file_path, new_file_name = get_directories(file_url, user_id, version_number)
+        download_path = os.path.join(new_file_path, new_file_name)
+
+        if not os.path.exists(download_path):
+            raise Http404("File not found")
+
+        return FileResponse(open(download_path, 'rb'), content_type='application/octet-stream')
+
+
 class FileVersionViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):
     authentication_classes = []
     permission_classes = []
     serializer_class = FileVersionSerializer
     queryset = FileVersion.objects.all()
-    lookup_field = "file_name"
+    lookup_field = "id"

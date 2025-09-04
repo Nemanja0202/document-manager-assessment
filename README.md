@@ -9,6 +9,36 @@ The API project is a [Django/DRF](https://www.django-rest-framework.org/) projec
 2. `$ make fixture` to create a small number of fixture file versions.
 3. `$ make serve` to start the development server on port 8001.
 4. `$ make test` to run the limited test suite via PyTest.
+
+### API Request Documentation
+
+**Endpoint:** `/files/upload/`<br>
+**Method:** `POST`
+
+**Description**: This endpoint is used to upload a new file to the server.
+**Request Format:** `multipart/form-data`
+
+#### Headers
+**Authorization**: Token "{your_auth_token}"<br>
+**Required:** Yes<br>
+**Description:** A valid, unique token to authenticate the user and authorize the request.<br>
+
+#### Request Body (Form Fields)
+The body of the request is sent as multipart/form-data. Each field is a separate part of the form.
+
+**file**<br>
+**Required:** Yes<br>
+**Type:** File<br>
+**Description:** The binary data of the file to be uploaded. In the curl command, this is specified with the @ symbol, which instructs curl to read the file content from the local file path.
+
+**file_url**<br>
+**Required:** Yes<br>
+**Type:** String<br>
+**Description:** The desired destination path and name for the file on the server. This field provides the new file's name and its location within the server's file structure.
+
+#### Example curl Command
+`curl -X POST -H "Authorization: Token {token}" -F "file=@{path_to_local_file}" -F "file_url={requested_path_and_file_name}" "http://localhost:8001/files/upload/"`
+
 ### Client Development 
 See the Readme [here](https://github.com/propylon/document-manager-assessment/blob/main/client/doc-manager/README.md)
 

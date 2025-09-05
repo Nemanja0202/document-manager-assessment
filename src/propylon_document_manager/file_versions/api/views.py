@@ -4,6 +4,7 @@ from hashlib import sha256
 from pathlib import Path
 
 from django.http import FileResponse, Http404
+from rest_framework import generics
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.exceptions import ValidationError
@@ -13,8 +14,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
-from ..models import FileVersion
-from .serializers import FileVersionSerializer
+from ..models import FileVersion, User
+from .serializers import FileVersionSerializer, RegisterSerializer
 
 
 PATH_TO_MEDIA = ['src', 'propylon_document_manager', 'media']
@@ -140,3 +141,10 @@ class FileVersionViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):
     serializer_class = FileVersionSerializer
     queryset = FileVersion.objects.all()
     lookup_field = "id"
+
+
+class RegisterView(generics.CreateAPIView):
+    authentication_classes = []
+    permission_classes = []
+    queryset = User.objects.all()
+    serializer_class = RegisterSerializer

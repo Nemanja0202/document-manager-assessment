@@ -12,6 +12,26 @@ The API project is a [Django/DRF](https://www.django-rest-framework.org/) projec
 
 ## API Request Documentation
 
+### `POST /register`
+**Description**: This endpoint is used to register a new user. Because the provided `POST auth-token/` endpoint didn't work since forking the project, this endpoint creates a token and returns it on user register.<br>
+**Request Format:** `application/json`
+
+### Request Body (Form Fields)
+The body of the request is sent as multipart/form-data. Each field is a separate part of the form.
+
+| Name        | Required | Type    |
+|-------------|------|--------|
+| `name`      | Yes | String |
+| `email`     |Yes| String |
+| `password`  | Yes | String |
+| `password2` |Yes| String |
+
+
+### Response
+**Status Code:** `200 OK`<br>
+**Content-Type:** application/json<br>
+**Body:** `{"name": str, "email": str, "token": str}`
+
 ### `GET /files/{file_url}`
 **Description:** Retrieves a file by its path.
 

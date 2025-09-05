@@ -106,7 +106,7 @@ class FileVersionRetrieveView(APIView):
 
     def get(self, request, file_url):
         user_id = request.user.id
-        version_number = request.query_params.get("version_number")
+        version_number = request.query_params.get("revision")
 
         if version_number:
             file_version = FileVersion.objects.filter(

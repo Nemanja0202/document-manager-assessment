@@ -36,5 +36,4 @@ class FileVersion(models.Model):
     version_number = models.fields.IntegerField()
     file_url = models.fields.CharField(max_length=255, default="")
     file_hash = models.CharField(max_length=64, default="")
-    file = models.FileField(default=None)
     user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)

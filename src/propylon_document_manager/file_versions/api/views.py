@@ -1,5 +1,4 @@
 import os
-import shutil
 from hashlib import sha256
 from pathlib import Path
 
@@ -21,16 +20,13 @@ from .serializers import FileVersionSerializer, RegisterSerializer
 PATH_TO_MEDIA = ['src', 'propylon_document_manager', 'media']
 
 
-def get_directories(file_url, user_id, version_number):
+def get_directories(file_url):
     new_file_directories = file_url.split("/")
     new_file_name = new_file_directories.pop()
 
-    # Saving files to /media/{user_id}/{desired_path}/{version_number so we have all versions of a file and also
-    # preventing users overwriting other users' files if they provide the same path and file name
     media_path = os.path.join(os.getcwd(), *PATH_TO_MEDIA)
-    new_file_path = os.path.join(media_path, str(user_id), *new_file_directories, str(version_number))
 
-    return media_path, new_file_path, new_file_name
+    return media_path, new_file_name
 
 
 class FileVersionUploadView(APIView):
@@ -72,28 +68,21 @@ class FileVersionUploadView(APIView):
             )
 
         version_number = latest_version.version_number + 1 if latest_version else 0
+        media_path, file_name = get_directories(file_url=file_url)
 
-        media_path, new_file_path, new_file_name = get_directories(file_url, user_id, version_number)
-        Path(new_file_path).mkdir(parents=True, exist_ok=True)
+        existing_file = FileVersion.objects.filter(file_hash=file_hash).first()
+        if not existing_file:
+            Path(media_path).mkdir(parents=True, exist_ok=True)
+            with open(os.path.join(media_path, file_hash), "wb") as f:
+                f.write(file.read())
 
         file_version = FileVersion.objects.create(
-            file_name=new_file_name,
+            file_name=file_name,
             version_number=version_number,
             file_url=file_url,
             file_hash=file_hash,
-            file=file,
             user_id=user_id
         )
-
-        temp_file = os.path.join(media_path, file.name)
-        new_file = os.path.join(new_file_path, new_file_name)
-        try:
-            shutil.move(temp_file, new_file)
-        except (FileNotFoundError, Exception) as e:
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
-            file_version.delete()
-            raise e
 
         return Response(
             {"file_url": file_version.file_url, "version_number": file_version.version_number},
@@ -124,15 +113,13 @@ class FileVersionRetrieveView(APIView):
         if not file_version:
             raise Http404("File not found")
 
-        version_number = file_version.version_number
-
-        _, new_file_path, new_file_name = get_directories(file_url, user_id, version_number)
-        download_path = os.path.join(new_file_path, new_file_name)
+        download_path = os.path.join(os.getcwd(), *PATH_TO_MEDIA, file_version.file_hash)
 
         if not os.path.exists(download_path):
             raise Http404("File not found")
 
-        return FileResponse(open(download_path, 'rb'), content_type='application/octet-stream')
+        with open(download_path, "rb") as f:
+            return FileResponse(f.read().decode(), content_type='application/octet-stream')
 
 
 class FileVersionViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):

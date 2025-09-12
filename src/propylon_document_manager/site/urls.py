@@ -3,7 +3,7 @@ from django.urls import include, path, re_path
 
 from rest_framework.authtoken.views import obtain_auth_token
 
-from propylon_document_manager.file_versions.api.views import FileVersionUploadView, FileVersionRetrieveView
+from propylon_document_manager.file_versions.api.views import FileVersionRetrieveView
 
 # API URLS
 urlpatterns = [
@@ -12,7 +12,6 @@ urlpatterns = [
     # DRF auth token
     path("api-auth/", include("rest_framework.urls")),
     path("auth-token/", obtain_auth_token),
-    path("files/upload/", FileVersionUploadView.as_view()),
     re_path(r"^files/(?P<file_url>[^/].*[^/]+\.[a-zA-Z0-9]+$)", FileVersionRetrieveView.as_view()),
 ]
 

@@ -28,9 +28,43 @@ def get_directories(file_url):
     return media_path, new_file_name
 
 
-class FileVersionUploadView(APIView):
+class FileVersionRetrieveView(APIView):
     authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = [IsAuthenticated]
+
+    def get(self, request, file_url):
+        user_id = request.user.id
+        version_number = request.query_params.get("revision")
+
+        if version_number:
+            file_version = FileVersion.objects.filter(
+                file_url=file_url,
+                user_id=user_id,
+                version_number=version_number
+            ).first()
+        else:
+            file_version = FileVersion.objects.filter(
+                file_url=file_url,
+                user_id=user_id
+            ).order_by("-version_number").first()
+
+        if not file_version:
+            raise Http404("File not found")
+
+        download_path = os.path.join(os.getcwd(), *PATH_TO_MEDIA, file_version.file_hash)
+
+        if not os.path.exists(download_path):
+            raise Http404("File not found")
+
+        with open(download_path, "rb") as f:
+            return FileResponse(f.read().decode(), content_type='application/octet-stream')
+
+
+class FileVersionViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = FileVersionSerializer
+    queryset = FileVersion.objects.all()
 
     @staticmethod
     def validate_file_url(file_url):
@@ -45,7 +79,7 @@ class FileVersionUploadView(APIView):
 
         return file_url
 
-    def post(self, request):
+    def create(self, request):
         user_id = request.user.id
 
         file = request.data.get("file")
@@ -87,43 +121,3 @@ class FileVersionUploadView(APIView):
             {"file_url": file_version.file_url, "version_number": file_version.version_number},
             status=status.HTTP_201_CREATED
         )
-
-
-class FileVersionRetrieveView(APIView):
-    authentication_classes = [SessionAuthentication, TokenAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, file_url):
-        user_id = request.user.id
-        version_number = request.query_params.get("revision")
-
-        if version_number:
-            file_version = FileVersion.objects.filter(
-                file_url=file_url,
-                user_id=user_id,
-                version_number=version_number
-            ).first()
-        else:
-            file_version = FileVersion.objects.filter(
-                file_url=file_url,
-                user_id=user_id
-            ).order_by("-version_number").first()
-
-        if not file_version:
-            raise Http404("File not found")
-
-        download_path = os.path.join(os.getcwd(), *PATH_TO_MEDIA, file_version.file_hash)
-
-        if not os.path.exists(download_path):
-            raise Http404("File not found")
-
-        with open(download_path, "rb") as f:
-            return FileResponse(f.read().decode(), content_type='application/octet-stream')
-
-
-class FileVersionViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):
-    authentication_classes = []
-    permission_classes = []
-    serializer_class = FileVersionSerializer
-    queryset = FileVersion.objects.all()
-    lookup_field = "id"

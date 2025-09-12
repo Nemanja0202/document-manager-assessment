@@ -47,7 +47,7 @@ The API project is a [Django/DRF](https://www.django-rest-framework.org/) projec
 
 ------------------------------------
 
-### `POST /files/upload`
+### `POST /api/file_versions/`
 **Description**: This endpoint is used to upload a new file to the server.<br>
 **Request Format:** `multipart/form-data`
 

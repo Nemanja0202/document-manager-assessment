@@ -8,8 +8,8 @@ from django.http import Http404
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from propylon_document_manager.file_versions.api.views import FileVersionUploadView, get_directories, \
-    FileVersionRetrieveView
+from propylon_document_manager.file_versions.api.views import FileVersionRetrieveView, FileVersionViewSet, \
+    get_directories
 from propylon_document_manager.file_versions.models import FileVersion, User
 
 
@@ -32,7 +32,7 @@ def test_file_versions(user):
 def test_validate_file_url_valid():
     """Tests validate_file_url with a valid file url"""
     file_url = "documents/reviews/review.pdf"
-    result = FileVersionUploadView.validate_file_url(file_url)
+    result = FileVersionViewSet.validate_file_url(file_url)
     assert result == file_url
 
 def test_validate_file_url_with_leading_slash():
@@ -41,20 +41,20 @@ def test_validate_file_url_with_leading_slash():
     starting with a leading slash
     """
     file_url = "/documents/report.pdf"
-    result = FileVersionUploadView.validate_file_url(file_url)
+    result = FileVersionViewSet.validate_file_url(file_url)
     assert result == "documents/report.pdf"
 
 def test_validate_file_url_empty():
     """Tests validate_file_url with an empty file url"""
     file_url = ""
     with raises(ValidationError):
-        FileVersionUploadView.validate_file_url(file_url)
+        FileVersionViewSet.validate_file_url(file_url)
 
 def test_validate_file_url_no_extension():
     """Tests validate_file_url with a file url without extension"""
     file_url = "documents/report"
     with raises(ValidationError):
-        FileVersionUploadView.validate_file_url(file_url)
+        FileVersionViewSet.validate_file_url(file_url)
 
 @mock.patch("propylon_document_manager.file_versions.api.views.os.getcwd")
 def test_get_directories(mock_getcwd):
@@ -79,7 +79,7 @@ class FileVersionRetrieveViewTests(APITestCase):
 
         # Create a mock User objects for testing
         self.user = User.objects.create(
-            name="testuser",
+            username="testuser",
             password="testuser",
         )
 

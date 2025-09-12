@@ -14,12 +14,12 @@ class Command(BaseCommand):
     help = "Load admin user and basic file version fixtures"
 
     def handle(self, *args, **options):
-        User.objects.create(
-            name='admin',
-            email='admin@pdm.test',
-            password='admin',
-            is_superuser=True,
-            is_staff=True,
+        default_user = User.objects.create_user(
+            username='default',
+            email='default@pdm.test',
+            password='default',
+            is_superuser=False,
+            is_staff=False,
             is_active=True,
             date_joined=datetime.now(timezone.utc),
         )
@@ -31,8 +31,8 @@ class Command(BaseCommand):
         for file_name in file_versions:
             FileVersion.objects.create(
                 file_name=file_name,
-                version_number=1,
-                user_id=1
+                version_number=0,
+                user_id=default_user.id,
             )
 
         self.stdout.write(

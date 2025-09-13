@@ -13,8 +13,6 @@ from propylon_document_manager.file_versions.api.views import FileVersionRetriev
 from propylon_document_manager.file_versions.models import FileVersion, User
 
 
-PATH_TO_MEDIA = ['src', 'propylon_document_manager', 'media']
-
 def test_file_versions(user):
     file_name = "new_file"
     file_version = 1
@@ -59,13 +57,14 @@ def test_validate_file_url_no_extension():
 @mock.patch("propylon_document_manager.file_versions.api.views.os.getcwd")
 def test_get_directories(mock_getcwd):
     """Tests get_directories for returning correct paths."""
+    path_to_media = ['src', 'propylon_document_manager', 'media']
     mock_getcwd.return_value = "/path/to/app"
 
     file_url = "path/to/new_file.txt"
 
     media_path, new_file_name = get_directories(file_url)
 
-    expected_media_path = os.path.join("/path/to/app", *PATH_TO_MEDIA)
+    expected_media_path = os.path.join("/path/to/app", *path_to_media)
     expected_new_file_name = "new_file.txt"
 
     assert media_path == expected_media_path
@@ -118,11 +117,11 @@ class FileVersionRetrieveViewTests(APITestCase):
         # Clean up the temporary directory
         shutil.rmtree(self.test_dir)
 
+    @mock.patch("propylon_document_manager.file_versions.api.views.PATH_TO_MEDIA", ["test_dir"])
     def test_retrieve_latest_version(self):
         """
         Tests that the latest file version is retrieved when no revision is specified.
         """
-
         response = FileVersionRetrieveView().get(self.request, self.file_url)
 
         assert response.status_code == status.HTTP_200_OK
@@ -131,6 +130,7 @@ class FileVersionRetrieveViewTests(APITestCase):
         response_content = b''.join(response.streaming_content)
         assert response_content == expected_content
 
+    @mock.patch("propylon_document_manager.file_versions.api.views.PATH_TO_MEDIA", ["test_dir"])
     def test_retrieve_specific_version(self):
         """
         Tests that the latest file version is retrieved when a revision is specified.

@@ -78,7 +78,7 @@ class FileVersionRetrieveViewTests(APITestCase):
 
         # Create a mock User objects for testing
         self.user = User.objects.create(
-            username="testuser",
+            name="testuser",
             password="testuser",
         )
 

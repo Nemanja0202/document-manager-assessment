@@ -15,7 +15,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         default_user = User.objects.create_user(
-            username='default',
+            name='default',
             email='default@pdm.test',
             password='default',
             is_superuser=False,

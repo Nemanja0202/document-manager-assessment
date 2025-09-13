@@ -8,7 +8,7 @@ from factory.django import DjangoModelFactory
 
 class UserFactory(DjangoModelFactory):
     email = Faker("email")
-    username = Faker("name")
+    name = Faker("name")
 
     @post_generation
     def password(self, create: bool, extracted: Sequence[Any], **kwargs):

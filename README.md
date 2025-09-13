@@ -12,7 +12,7 @@ The API project is a [Django/DRF](https://www.django-rest-framework.org/) projec
 
 ## API Request Documentation
 
-### `GET /files/{file_url}`
+### `GET /api/file_versions/{file_url}`
 **Description:** Retrieves a file by its path.
 
 ### Headers
@@ -43,7 +43,7 @@ The API project is a [Django/DRF](https://www.django-rest-framework.org/) projec
 |`500`|Internal Server Errord|Unexpected server-side issue|
 
 ### Example Request
-`curl -L "{base_url}/files/{url_to_file_with_extension}" -H "Authorization: Token {your_token}"`
+`curl -L "{base_url}/api/file_versions/{url_to_file_with_extension}" -H "Authorization: Token {your_token}"`
 
 ------------------------------------
 
@@ -67,18 +67,23 @@ The body of the request is sent as multipart/form-data. Each field is a separate
 ### Response
 **Status Code:** `201 CREATED`<br>
 **Content-Type:** Based on file type (e.g., text/plain, application/json, etc.)<br>
-**Body:** `{"file_url": file_version.file_url, "version_number": file_version.version_number}`
+**Body:**
+```json
+{
+  "file_url": "<file_version.file_url>",
+  "version_number": "<file_version.version_number>"
+}
+```
 
 ### Error Responses
 | Status Code | Meaning | Description                               |
 |-----------|------|-------------------------------------------|
 | `400` | Bad Request | Client error (e.g. wrong file_url format) |
 | `401` | Unauthorized  | Missing or invalid bearer token           |
-|`404`|Not Found| File does not exist at the given path     |
 |`500`|Internal Server Errord| Unexpected server-side issue              |
 
 ### Example curl Command
-`curl -X POST -H "Authorization: Token {token}" -F "file=@{path_to_local_file}" -F "file_url={requested_path_and_file_name}" "{base_url}/files/upload/"`
+`curl -X POST -H "Authorization: Token {token}" -F "file=@{path_to_local_file}" -F "file_url={requested_path_and_file_name}" "{base_url}/api/file_versions/"`
 
 ### Client Development 
 See the Readme [here](https://github.com/propylon/document-manager-assessment/blob/main/client/doc-manager/README.md)

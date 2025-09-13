@@ -12,7 +12,7 @@ urlpatterns = [
     # DRF auth token
     path("api-auth/", include("rest_framework.urls")),
     path("auth-token/", obtain_auth_token),
-    re_path(r"^files/(?P<file_url>[^/].*[^/]+\.[a-zA-Z0-9]+$)", FileVersionRetrieveView.as_view()),
+    re_path(r"^api/file_versions/(?P<file_url>[^/].*[^/]+\.[a-zA-Z0-9]+$)", FileVersionRetrieveView.as_view()),
 ]
 
 if settings.DEBUG:

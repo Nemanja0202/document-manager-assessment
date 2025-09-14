@@ -2,17 +2,17 @@ import os
 from hashlib import sha256
 from pathlib import Path
 
+from django.db.models import Q
 from django.http import FileResponse, Http404
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.exceptions import ValidationError
-from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
-from ..models import FileVersion
+from ..models import FileVersion, User
 from .serializers import FileVersionSerializer
 
 
@@ -37,16 +37,24 @@ class FileVersionRetrieveView(APIView):
         version_number = request.query_params.get("revision")
 
         if version_number:
-            file_version = FileVersion.objects.filter(
+            base_query = FileVersion.objects.filter(
                 file_url=file_url,
-                user_id=user_id,
                 version_number=version_number
-            ).first()
+            )
         else:
-            file_version = FileVersion.objects.filter(
-                file_url=file_url,
-                user_id=user_id
-            ).order_by("-version_number").first()
+            base_query = FileVersion.objects.filter(file_url=file_url).order_by("-version_number")
+
+        # Currently two or more users can upload files with the same url and share the files between them
+        # This could maybe be fixed with an optional query param like user_id or is_uploader.
+
+        # Searching for user's files first
+        file_version = base_query.filter(user_id=user_id).first()
+        if not file_version:
+            # If no files are found, searching for files where user has permission
+            file_version = base_query.filter(
+                Q(read_permissions=user_id) |
+                Q(write_permissions=user_id)
+            ).first()
 
         if not file_version:
             raise Http404("File not found")
@@ -60,7 +68,7 @@ class FileVersionRetrieveView(APIView):
             return FileResponse(f.read().decode(), content_type='application/octet-stream')
 
 
-class FileVersionViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):
+class FileVersionViewSet(GenericViewSet):
     authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = FileVersionSerializer
@@ -118,6 +126,55 @@ class FileVersionViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):
         )
 
         return Response(
-            {"file_url": file_version.file_url, "version_number": file_version.version_number},
+            {
+                "id": file_version.id,
+                "file_url": file_version.file_url,
+                "version_number": file_version.version_number
+            },
             status=status.HTTP_201_CREATED
+        )
+
+    def partial_update(self, request, pk=None):
+        file_version = FileVersion.objects.get(pk=pk)
+        if not file_version:
+            raise Http404("File not found")
+
+        read_permissions_request = request.data.get("read_permissions")
+        write_permissions_request = request.data.get("write_permissions")
+
+        # TODO Maybe add option to change file_url
+        # Check if there's a file with the same file_url, but not that file itself - it should be possible to overwrite
+        # url with the same name
+        #   If not, update new file_url
+        #   If yes but same file, update (basically skip)
+        #   If yes but different file, raise error so we don't update
+        # If updating file_url of a file with multiple revisions, all revisions should be updated
+
+        if isinstance(read_permissions_request, list):
+            # Deleting users from the permissions list
+            file_version.read_permissions.clear()
+
+            users = User.objects.filter(email__in=read_permissions_request).all()
+            # Adding requested users to the permissions list
+            for user in users:
+                if user.id not in file_version.read_permissions.all():
+                    file_version.read_permissions.add(user)
+
+        if isinstance(write_permissions_request, list):
+            # Deleting users from the permissions list
+            file_version.write_permissions.clear()
+
+            users = User.objects.filter(email__in=write_permissions_request).all()
+            # Adding requested users to the permissions list
+            for user in users:
+                if user.id not in file_version.write_permissions.all():
+                    file_version.write_permissions.add(user)
+
+        return Response(
+            {
+                "id": file_version.id,
+                "file_url": file_version.file_url,
+                "version_number": file_version.version_number
+            },
+            status=status.HTTP_200_OK
         )

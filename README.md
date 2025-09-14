@@ -13,7 +13,7 @@ The API project is a [Django/DRF](https://www.django-rest-framework.org/) projec
 ## API Request Documentation
 
 ### `GET /api/file_versions/{file_url}`
-**Description:** Retrieves a file by its path.
+**Description:** Retrieves a file by its path. Searches first for user-uploaded files. If non are found, searches for files where the user has read/write permission.
 
 ### Headers
 **Authorization**: Token "{your_auth_token}"<br>
@@ -36,14 +36,14 @@ The API project is a [Django/DRF](https://www.django-rest-framework.org/) projec
 **Body:** Returns the contents of the file.
 
 ### Error Responses
-| Status Code | Meaning | Description                                 |
-|-----------|------|---------------------------------------------|
-| `401` | Unauthorized  | Missing or invalid bearer token |
+| Status Code | Meaning | Description           |
+|---------|------|------------------------------|
+|`401`|Unauthorized|Missing or invalid bearer token|
 |`404`|Not Found|File does not exist at the given path|
 |`500`|Internal Server Errord|Unexpected server-side issue|
 
 ### Example Request
-`curl -L "{base_url}/api/file_versions/{url_to_file_with_extension}" -H "Authorization: Token {your_token}"`
+`curl -L "{base_url}/api/file_versions/{url_to_file_with_extension}?revision=0" -H "Authorization: Token {your_token}"`
 
 ------------------------------------
 
@@ -70,8 +70,9 @@ The body of the request is sent as multipart/form-data. Each field is a separate
 **Body:**
 ```json
 {
-  "file_url": "<file_version.file_url>",
-  "version_number": "<file_version.version_number>"
+  "id": int,
+  "file_url": str,
+  "version_number": int
 }
 ```
 
@@ -84,6 +85,53 @@ The body of the request is sent as multipart/form-data. Each field is a separate
 
 ### Example curl Command
 `curl -X POST -H "Authorization: Token {token}" -F "file=@{path_to_local_file}" -F "file_url={requested_path_and_file_name}" "{base_url}/api/file_versions/"`
+
+------------------------------------
+
+### `PATCH /api/file_versions/<id>/`
+**Description**: This endpoint is used to update the file_versions. It supports read/write permissions at the moment. File_url can be updated in the future.<br>`read_permissions` and `write_permissions` are a list of user email.
+
+### Headers
+**Authorization**: Token "{your_auth_token}"<br>
+**Required:** Yes<br>
+**Description:** A valid, unique token to authenticate the user and authorize the request.<br>
+
+### Request Body
+
+```json
+{
+  "read_permissions": [str],
+  "write_permissions": [str]
+}
+```
+
+| Name | Required | Type      | Description                                   |
+|-----------|----|-----------|-----------------------------------------------|
+|`read_permissions`| No | List(str) | List of user email who have read-permissions  |
+|`read_permissions`| No | List(str) | List of user email who have write-permissions |
+
+### Response
+**Status Code:** `200 OK`<br>
+**Content-Type:** application/json<br>
+**Body:**
+
+```json
+{
+  "id": int,
+  "file_url": str,
+  "version_number": int
+}
+```
+
+### Error Responses
+| Status Code | Meaning | Description                               |
+|-----------|------|-------------------------------------------|
+| `400` | Bad Request | Client error (e.g. wrong file_url format) |
+| `401` | Unauthorized  | Missing or invalid bearer token           |
+|`500`|Internal Server Errord| Unexpected server-side issue              |
+
+### Example curl Command
+`curl -L -X PATCH "http://localhost:8001/api/file_versions/<id>/" -H "Content-Type: application/json" -H "Authorization: Token {token}" -d "{\"read_permissions\":[\"<email_address>\"]}"`
 
 ### Client Development 
 See the Readme [here](https://github.com/propylon/document-manager-assessment/blob/main/client/doc-manager/README.md)

@@ -63,3 +63,5 @@ class FileVersion(models.Model):
     file_url = models.fields.CharField(max_length=255, default="")
     file_hash = models.CharField(max_length=64, default="")
     user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
+    read_permissions = models.ManyToManyField(User, related_name="read_permissions")
+    write_permissions = models.ManyToManyField(User, related_name="write_permissions")

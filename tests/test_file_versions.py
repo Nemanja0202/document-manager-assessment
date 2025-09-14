@@ -246,3 +246,85 @@ def test_new_file_saves_correctly(mock_sha256, mock_file_version_model, mock_get
     assert mock_mkdir.called
     mock_open_file.assert_called_once_with(os.path.join("media/path", file_hash), "wb")
     mock_file_version_model.create.assert_called_once()
+
+
+def test_partial_update_file_not_found(user):
+    """
+    Tests that an Http404 is raised when the file is not found in the database.
+    """
+    request = MagicMock(user=user, data={})
+
+    with raises(Http404):
+        FileVersionViewSet().partial_update(request, pk=1111)
+
+
+@mock.patch("propylon_document_manager.file_versions.api.views.User.objects")
+@mock.patch("propylon_document_manager.file_versions.api.views.FileVersion.objects")
+def test_partial_update_read_permissions_updated(mock_file_version_objects, mock_user_objects, patch_file_version, user):
+    """
+    Tests that read permissions are being updated
+    """
+    mock_file_version = patch_file_version
+
+    mock_user_objects.filter.return_value.all.return_value = [user]
+    mock_file_version_objects.filter.return_value.first.return_value = mock_file_version
+
+    data = {"read_permissions": ["user@example.com"]}
+
+    request = MagicMock(data=data)
+    response = FileVersionViewSet().partial_update(request, pk=1)
+
+    mock_file_version.read_permissions.clear.assert_called_once()
+    mock_file_version.read_permissions.add.assert_called_once_with(user)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["id"] == mock_file_version.id
+
+
+@mock.patch("propylon_document_manager.file_versions.api.views.User.objects")
+@mock.patch("propylon_document_manager.file_versions.api.views.FileVersion.objects")
+def test_partial_update_write_permissions_updated(mock_file_version_objects, mock_user_objects, patch_file_version, user):
+    """
+    Tests that write permissions are being updated
+    """
+    mock_file_version = patch_file_version
+
+    mock_user_objects.filter.return_value.all.return_value = [user]
+    mock_file_version_objects.filter.return_value.first.return_value = mock_file_version
+
+    data = {"write_permissions": ["user@example.com"]}
+
+    request = MagicMock(data=data)
+    response = FileVersionViewSet().partial_update(request, pk=1)
+
+    mock_file_version.write_permissions.clear.assert_called_once()
+    mock_file_version.write_permissions.add.assert_called_once_with(user)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["id"] == mock_file_version.id
+
+
+@mock.patch("propylon_document_manager.file_versions.api.views.User.objects")
+@mock.patch("propylon_document_manager.file_versions.api.views.FileVersion.objects")
+def test_partial_update_both_permissions(mock_file_version_objects, mock_user_objects, patch_file_version, user):
+    """
+    Tests that both read and write permissions are being updated
+    """
+    mock_file_version = patch_file_version
+
+    mock_file_version.read_permissions.all.return_value = []
+    mock_file_version.write_permissions.all.return_value = []
+
+    mock_user_objects.filter.return_value.all.return_value = [user]
+    mock_file_version_objects.filter.return_value.first.return_value = mock_file_version
+
+    data = {
+        "read_permissions": ["user@example.com"],
+        "write_permissions": ["user@example.com"]
+    }
+    request = MagicMock(data=data)
+    response = FileVersionViewSet().partial_update(request, pk=1)
+
+    mock_file_version.read_permissions.clear.assert_called_once()
+    mock_file_version.write_permissions.clear.assert_called_once()
+    mock_file_version.read_permissions.add.assert_called_once_with(user)
+    mock_file_version.write_permissions.add.assert_called_once_with(user)
+    assert response.status_code == status.HTTP_200_OK

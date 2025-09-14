@@ -135,7 +135,7 @@ class FileVersionViewSet(GenericViewSet):
         )
 
     def partial_update(self, request, pk=None):
-        file_version = FileVersion.objects.get(pk=pk)
+        file_version = FileVersion.objects.filter(pk=pk).first()
         if not file_version:
             raise Http404("File not found")
 
